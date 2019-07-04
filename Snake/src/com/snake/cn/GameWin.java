@@ -8,7 +8,6 @@ import java.awt.event.KeyListener;
 import java.awt.event.ActionEvent;
 import java.awt.Color;
 import java.awt.Graphics;
-
 import javax.swing.JLabel;
 import java.awt.GridBagLayout;
 import java.awt.Image;
@@ -28,6 +27,7 @@ public class GameWin extends JPanel implements ActionListener, KeyListener  {
 	private Snake snake;
 	private Image buf=null;
 	private Graphics gbuf=null;
+	private Boolean keyClicked = false; // 限制只捕获一个按键
 	
 
 	/**
@@ -90,34 +90,41 @@ public class GameWin extends JPanel implements ActionListener, KeyListener  {
 		quit.addActionListener(this);
 		this.addKeyListener(this);
 		
-		snake = new Snake(gamePanel);
-		
-		new snakeThread().start();
+		snake = new Snake();
+
+		new SnakeThread().start();
 	}
 	
 
 	@Override
 	public void keyPressed(KeyEvent e) {
+		
 		// TODO Auto-generated method stub
-		if(!startFlag) return ;
+		if(!startFlag || keyClicked) return ;
+		
         switch(e.getKeyCode()) {
         case KeyEvent.VK_UP:
             if(snake.getDir() == Confi.Down) break;
+            keyClicked=true;
             snake.changeDir(Confi.Up);
             break;
         case KeyEvent.VK_DOWN:
             if(snake.getDir() == Confi.Up) break;
+            keyClicked=true;
             snake.changeDir(Confi.Down);
             break;
         case KeyEvent.VK_LEFT:
             if(snake.getDir() == Confi.Right) break;
+            keyClicked=true;
             snake.changeDir(Confi.Left);
             break;
         case KeyEvent.VK_RIGHT:
             if(snake.getDir() == Confi.Left) break;
+            keyClicked=true;
             snake.changeDir(Confi.Right);
             break;
         }
+        keyClicked=false;
 	}
 
 	@Override
@@ -159,28 +166,30 @@ public class GameWin extends JPanel implements ActionListener, KeyListener  {
 		gbuf.setColor(gamePanel.getBackground());
 		gbuf.fillRect(0, 0, gamePanel.getWidth(), gamePanel.getHeight());
 		
+		gbuf.drawImage(Confi.bg, 0, 0, Confi.cols*Confi.WallSize, Confi.rows*Confi.WallSize, null);
+		
 		//绘制墙壁
 		gbuf.setColor(Color.gray);
 		for(int i=0;i<rows;i++) {
-			gbuf.fillRect(0*Confi.WallSize, i*Confi.WallSize, Confi.WallSize, Confi.WallSize);
+			gbuf.drawImage(Confi.wall, 0*Confi.WallSize, i*Confi.WallSize, Confi.WallSize, Confi.WallSize, null);
 		}
 		for(int i=0;i<rows;i++) {
-			gbuf.fillRect((cols-1)*Confi.WallSize, i*Confi.WallSize, Confi.WallSize, Confi.WallSize);
+			gbuf.drawImage(Confi.wall,(cols-1)*Confi.WallSize, i*Confi.WallSize, Confi.WallSize, Confi.WallSize, null);
 		}
 		for(int i=0;i<cols;i++) {
-			gbuf.fillRect(i*Confi.WallSize, 0*Confi.WallSize, Confi.WallSize, Confi.WallSize);
+			gbuf.drawImage(Confi.wall, i*Confi.WallSize, 0*Confi.WallSize, Confi.WallSize, Confi.WallSize, null);
 		}
 		for(int i=0;i<cols;i++) {
-			gbuf.fillRect(i*Confi.WallSize, (rows-1)*Confi.WallSize, Confi.WallSize, Confi.WallSize);
+			gbuf.drawImage(Confi.wall, i*Confi.WallSize, (rows-1)*Confi.WallSize, Confi.WallSize, Confi.WallSize, null);
 		}
-				
+		
 		snake.draw(gbuf);
 		gbuf.dispose();
-		g.drawImage(buf, gamePanel.getX(), getY(), null);
+		g.drawImage(buf, gamePanel.getX(), gamePanel.getY(), null);
 	}
 	
 	
-	class snakeThread extends Thread
+	class SnakeThread extends Thread
     {
         public void run() {
             while(true) {
@@ -188,7 +197,11 @@ public class GameWin extends JPanel implements ActionListener, KeyListener  {
                     Thread.sleep(200 - Confi.speed >= 0 ? 200 - Confi.speed : 0);
                     repaint();
                     if(startFlag) {
-                        snake.move();
+                        if(snake.move()==0){
+                        	startFlag=false;
+                        	start.setEnabled(true);
+                        	pause.setEnabled(false);
+                        }
                     }
                 }
                 catch(InterruptedException e) {

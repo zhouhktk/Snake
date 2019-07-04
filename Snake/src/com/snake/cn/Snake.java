@@ -1,33 +1,47 @@
 package com.snake.cn;
 
-import java.awt.Color;
+import java.applet.Applet;
+import java.applet.AudioClip;
 import java.awt.Graphics;
-import java.awt.SystemTray;
+import java.awt.Image;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
-
+import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-
-import com.sun.org.apache.regexp.internal.recompile;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 
 public class Snake {
 	
 	static final int DIR[][] = {{0 , -1} , {0 , 1} , {-1 , 0} , {1 , 0}};
     private List<Food> lt = new ArrayList<Food>();
     private int currentDir;
-    private JPanel panel;
     private Food food=null;
-
-    public Snake(JPanel panel) {
-    	this.panel = panel;
-        currentDir = 3;
-                
-        lt.add(new Food(12, 15));
-        food = new Food(12, 20);        
+    private  AudioClip eatMusic=null, loseMusic=null, bgsound=null;
+    
+	public Snake() {
+    	start();
     }
     
+    @SuppressWarnings("deprecation")
+	void start(){
+    	if (eatMusic==null || loseMusic==null || bgsound==null) {
+    		try {
+    			eatMusic = Applet.newAudioClip(new java.io.File("./res/score.wav").toURL());
+    			loseMusic = Applet.newAudioClip(new java.io.File("./res/loser.wav").toURL());
+    			bgsound = Applet.newAudioClip(new java.io.File("./res/bgsound.wav").toURL());
+    		} catch (MalformedURLException e) {
+    			// TODO Auto-generated catch block
+    			e.printStackTrace();
+    		}
+		}
+    	bgsound.loop();
+        currentDir = 3;
+                
+        lt.add(new Food(8, 12));
+        food = new Food(12, 12); 
+        
+    }
+    //生成食物，食物不与蛇重合
     public Food generateFood() {
 		Food temp = new Food();
 		while (true) {
@@ -55,17 +69,18 @@ public class Snake {
     //绘制蛇身及食物
     void draw(Graphics g) 
     {
-    	g.setColor(Color.RED);
-    	g.fillRect(food.getX()*Confi.FoodWidth, food.getY()*Confi.FoodHeight, Confi.FoodWidth, Confi.FoodHeight);
+    	//食物
+    	Image foodImg = new ImageIcon("./res/food"+ food.getNumber() +".png").getImage();
+    	g.drawImage(foodImg, food.getX()*Confi.FoodWidth, food.getY()*Confi.FoodHeight, Confi.FoodWidth, Confi.FoodHeight, null);
     	//蛇头
-    	g.setColor(Color.green);
     	if (lt.size()>0) {
-        	g.fillRect(lt.get(0).getX()*Confi.FoodWidth, lt.get(0).getY()*Confi.FoodHeight, Confi.FoodWidth, Confi.FoodHeight);
+        	g.drawImage(Confi.header, lt.get(0).getX()*Confi.FoodWidth, lt.get(0).getY()*Confi.FoodHeight, Confi.FoodWidth, Confi.FoodHeight, null);
 		}
     	//蛇身
-        g.setColor(Color.black);
         for(int i = 1; i < lt.size(); i++) {
-            g.fillRect(lt.get(i).getX()*Confi.FoodWidth, lt.get(i).getY()*Confi.FoodHeight, Confi.FoodWidth, Confi.FoodHeight);
+//        	int number = (int)Math.floor(Math.random()*6+1);
+//        	Image body = new ImageIcon("./res/body"+ number +".gif").getImage();
+        	g.drawImage(Confi.body, lt.get(i).getX()*Confi.FoodWidth, lt.get(i).getY()*Confi.FoodHeight, Confi.FoodWidth, Confi.FoodHeight, null);
         }
     }
     
@@ -82,7 +97,7 @@ public class Snake {
         return false;
     }
 
-	public void move() {
+	public int move() {
 		Boolean eated = false;//判断是否吃到了食物
 		int tx = lt.get(0).getX() + DIR[currentDir][0];
         int ty = lt.get(0).getY() + DIR[currentDir][1];
@@ -96,15 +111,24 @@ public class Snake {
         if (!eated) {
         	lt.remove(lt.size()-1);
         	Confi.score=lt.size()-1;
+		}else {
+			eatMusic.play();
 		}
         
         if (Dead()) {
-        	JOptionPane.showMessageDialog(null, "GAME OVER", "Message", JOptionPane.ERROR_MESSAGE);
-            System.exit(1);
+        	bgsound.stop();
+        	loseMusic.play();
+        	int i = JOptionPane.showConfirmDialog(null, "再玩一次？", "你挂了！", JOptionPane.YES_NO_OPTION);
+        	if (i==1) {
+				System.exit(0);
+			}else {
+				lt.clear();
+				start();
+				return i;
+			}
 		}
-        
+        return 2;
 	}
 	
 	void changeDir(int dir) {currentDir = dir;}
-
 }
